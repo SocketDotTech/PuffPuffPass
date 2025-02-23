@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { getGameState } from './index';
+import { useEffect, useState } from "react";
+import { getGameState } from "./index";
 
 interface GameStateProps {
   rpcUrl: string;
@@ -39,7 +39,10 @@ export default function GameBoard({ rpcUrl, contractAddress }: GameStateProps) {
             Puff Puff Pass Game
           </h1>
           <div className="flex justify-center gap-4">
-            <StatusBadge label="Game Status" value={gameState.gameStarted ? 'Active' : 'Not Started'} />
+            <StatusBadge
+              label="Game Status"
+              value={gameState.gameStarted ? "Active" : "Not Started"}
+            />
             <StatusBadge label="Current Turn" value={gameState.currentTurn} />
             {gameState.gameEnded && (
               <StatusBadge label="Winner" value={gameState.winner} />
@@ -65,18 +68,23 @@ export default function GameBoard({ rpcUrl, contractAddress }: GameStateProps) {
 
 function PlayerBoard({ chainSlug, playerState, isCurrentTurn }) {
   return (
-    <div className={`
+    <div
+      className={`
       rounded-xl p-6 
-      ${isCurrentTurn 
-        ? 'bg-gradient-to-br from-purple-900/50 to-pink-900/50 border-2 border-purple-500' 
-        : 'bg-gray-800'
+      ${
+        isCurrentTurn
+          ? "bg-gradient-to-br from-purple-900/50 to-pink-900/50 border-2 border-purple-500"
+          : "bg-gray-800"
       }
       shadow-xl transition-all duration-300
-    `}>
+    `}
+    >
       <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
         Player {chainSlug}
         {isCurrentTurn && (
-          <span className="text-sm bg-purple-500 px-2 py-1 rounded-full">Current Turn</span>
+          <span className="text-sm bg-purple-500 px-2 py-1 rounded-full">
+            Current Turn
+          </span>
         )}
       </h2>
 
@@ -98,13 +106,15 @@ function PlayerBoard({ chainSlug, playerState, isCurrentTurn }) {
       <div className="mb-6">
         <h3 className="text-xl font-semibold mb-3">Characters</h3>
         <div className="grid grid-cols-2 gap-3">
-          {Object.entries(playerState.characters[chainSlug] || {}).map(([id, char]: [string, any]) => (
-            <CharacterCard
-              key={id}
-              name={char.name}
-              turnsLeft={char.turnsLeft}
-            />
-          ))}
+          {Object.entries(playerState.characters[chainSlug] || {}).map(
+            ([id, char]: [string, any]) => (
+              <CharacterCard
+                key={id}
+                name={char.name}
+                turnsLeft={char.turnsLeft}
+              />
+            )
+          )}
         </div>
       </div>
 
@@ -112,13 +122,15 @@ function PlayerBoard({ chainSlug, playerState, isCurrentTurn }) {
       <div>
         <h3 className="text-xl font-semibold mb-3">Powers</h3>
         <div className="grid grid-cols-2 gap-3">
-          {Object.entries(playerState.powers[chainSlug] || {}).map(([id, power]: [string, any]) => (
-            <PowerCard
-              key={id}
-              name={power.name}
-              powerLeft={power.powerLeft}
-            />
-          ))}
+          {Object.entries(playerState.powers[chainSlug] || {}).map(
+            ([id, power]: [string, any]) => (
+              <PowerCard
+                key={id}
+                name={power.name}
+                powerLeft={power.powerLeft}
+              />
+            )
+          )}
         </div>
       </div>
     </div>
@@ -150,8 +162,8 @@ function CharacterCard({ name, turnsLeft }) {
   return (
     <div className="bg-gray-700/30 rounded-lg p-3 hover:bg-gray-700/50 transition-all">
       <div className="font-medium">{name}</div>
-      <div className="text-sm text-gray-400">
-        Turns left: <span className="text-purple-400">{turnsLeft}</span>
+      <div className="text-sm text-black-400">
+        Turns left: <span className="text-black-400">{turnsLeft}</span>
       </div>
     </div>
   );
@@ -161,9 +173,9 @@ function PowerCard({ name, powerLeft }) {
   return (
     <div className="bg-gray-700/30 rounded-lg p-3 hover:bg-gray-700/50 transition-all">
       <div className="font-medium">{name}</div>
-      <div className="text-sm text-gray-400">
-        Power left: <span className="text-pink-400">{powerLeft}</span>
+      <div className="text-sm text-black-400">
+        Power left: <span className="text-black-400">{powerLeft}</span>
       </div>
     </div>
   );
-} 
+}
