@@ -1,35 +1,12 @@
 import { useEffect, useState } from 'react';
 import { getGameState, refreshLifeForPlayers, playWithCharacter } from '../utils/contractUtils';
 import buttercupImage from '../assets/blossom.png';
+import { GameState, Character, Power } from '../types/game';
 
 interface GameStateProps {
   rpcUrl: string;
   contractAddress: string;
-}
-
-interface GameState {
-  gameStarted: boolean;
-  gameEnded: boolean;
-  winner: number;
-  currentTurn: number;
-  chemicalX: { [key: number]: number };
-  life: { [key: number]: number };
-  characters: {
-    [key: number]: {
-      [id: number]: {
-        name: string;
-        turnsLeft: number;
-      }
-    }
-  };
-  powers: {
-    [key: number]: {
-      [id: number]: {
-        name: string;
-        powerLeft: number;
-      }
-    }
-  };
+  gameState?: GameState;
 }
 
 const CHARACTER_NAMES: { [key: number]: string } = {
@@ -255,22 +232,32 @@ function CharacterCard({
   );
 }
 
-export default function GameBoard({ rpcUrl, contractAddress }: GameStateProps) {
-  const [gameState, setGameState] = useState<any>(null);
+export default function GameBoard({ rpcUrl, contractAddress, gameState: initialGameState }: GameStateProps) {
+  const [localGameState, setLocalGameState] = useState<GameState | null>(null);
   const [loading, setLoading] = useState(true);
   const [isTransacting, setIsTransacting] = useState(false);
 
+  useEffect(() => {
+    if (initialGameState) {
+      setLocalGameState(initialGameState);
+      setLoading(false);
+    } else {
+      fetchGameState();
+    }
+  }, [initialGameState]);
+
   const fetchGameState = async () => {
     const state = await getGameState(rpcUrl, contractAddress);
-    setGameState(state);
+    setLocalGameState(state);
     setLoading(false);
   };
 
   useEffect(() => {
-    fetchGameState();
-    const interval = setInterval(fetchGameState, 3000);
-    return () => clearInterval(interval);
-  }, [rpcUrl, contractAddress]);
+    if (!initialGameState) {
+      const interval = setInterval(fetchGameState, 3000);
+      return () => clearInterval(interval);
+    }
+  }, [rpcUrl, contractAddress, initialGameState]);
 
   const handleRefreshGameState = async () => {
     if (isTransacting) return;
@@ -286,7 +273,7 @@ export default function GameBoard({ rpcUrl, contractAddress }: GameStateProps) {
     }
   };
 
-  if (loading || !gameState) {
+  if (loading || !localGameState) {
     return <div>Loading...</div>;
   }
 
@@ -300,7 +287,7 @@ export default function GameBoard({ rpcUrl, contractAddress }: GameStateProps) {
           <div 
             key={chainSlug} 
             className={`border p-4 rounded transition-all duration-300 ease-out ${
-              Number(gameState.currentTurn) === chainSlug 
+              Number(localGameState.currentTurn) === chainSlug 
                 ? 'bg-purple-900/20 border-purple-500 shadow-lg shadow-purple-500/20' 
                 : 'opacity-60 bg-gray-800/50'
             }`}
@@ -309,29 +296,29 @@ export default function GameBoard({ rpcUrl, contractAddress }: GameStateProps) {
               <img 
                 src={CHAIN_IMAGES[chainSlug]} 
                 alt={`Chain ${chainSlug}`} 
-                className={`h-8 w-8 ${Number(gameState.currentTurn) !== chainSlug && 'grayscale'}`}
+                className={`h-8 w-8 ${Number(localGameState.currentTurn) !== chainSlug && 'grayscale'}`}
               />
               <h2 className="text-xl">
                 Player {chainSlug}
-                {Number(gameState.currentTurn) === chainSlug && (
+                {Number(localGameState.currentTurn) === chainSlug && (
                   <span className="ml-2 text-sm bg-purple-500 px-2 py-1 rounded-full animate-pulse">
                     Current Turn
                   </span>
                 )}
               </h2>
             </div>
-            <p className="animate-fade-in">Chemical X: {gameState.chemicalX[chainSlug]}</p>
+            <p className="animate-fade-in">Chemical X: {localGameState.chemicalX[chainSlug]}</p>
             <div className="space-y-2">
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-400">Life:</span>
-                <span className="text-sm text-gray-300">{gameState.life[chainSlug]}</span>
+                <span className="text-sm text-gray-300">{localGameState.life[chainSlug]}</span>
               </div>
-              <HealthBar value={gameState.life[chainSlug]} maxValue={100} />
+              <HealthBar value={localGameState.life[chainSlug]} maxValue={100} />
             </div>
             <p className="animate-fade-in">
-              Current Turn: {Number(gameState.currentTurn)}
+              Current Turn: {Number(localGameState.currentTurn)}
             </p>
-            {gameState.gameEnded && gameState.winner === chainSlug && (
+            {localGameState.gameEnded && localGameState.winner === chainSlug && (
               <p className="text-green-500 font-bold animate-bounce">Winner!</p>
             )}
 
@@ -339,7 +326,7 @@ export default function GameBoard({ rpcUrl, contractAddress }: GameStateProps) {
             <div className="mt-4">
               <h3 className="font-bold mb-2">Characters:</h3>
               <div className="grid grid-cols-2 gap-2">
-                {Object.entries(gameState.characters[chainSlug] || {})
+                {Object.entries(localGameState.characters[chainSlug] || {})
                   .filter(([_, char]) => char.turnsLeft > 0)
                   .map(([id, char]: [string, any]) => (
                     <CharacterCard
@@ -350,7 +337,7 @@ export default function GameBoard({ rpcUrl, contractAddress }: GameStateProps) {
                       contractAddress={contractAddress}
                       rpcUrl={rpcUrl}
                       onAction={fetchGameState}
-                      gameState={gameState}
+                      gameState={localGameState}
                     />
                   ))}
               </div>
@@ -360,7 +347,7 @@ export default function GameBoard({ rpcUrl, contractAddress }: GameStateProps) {
             <div className="mt-4">
               <h3 className="font-bold mb-2">Powers:</h3>
               <div className="grid grid-cols-2 gap-2">
-                {Object.entries(gameState.powers[chainSlug] || {})
+                {Object.entries(localGameState.powers[chainSlug] || {})
                   .filter(([_, power]) => power.powerLeft > 0)
                   .map(([id, power]: [string, any]) => (
                     <PowerCard
@@ -397,94 +384,6 @@ export default function GameBoard({ rpcUrl, contractAddress }: GameStateProps) {
           </svg>
           {isTransacting ? 'Syncing...' : 'Sync'}
         </button>
-      </div>
-    </div>
-  );
-}
-
-function StatusBadge({ label, value }: { label: string; value: any }) {
-  return (
-    <div className="bg-gray-800 rounded-lg px-4 py-2 shadow-lg">
-      <div className="text-gray-400 text-sm">{label}</div>
-      <div className="font-bold">{value}</div>
-    </div>
-  );
-}
-
-function PlayerBoard({ chainSlug, playerState, isCurrentTurn }: { chainSlug: number; playerState: GameState; isCurrentTurn: boolean }) {
-  return (
-    <div className={`
-      rounded-xl p-6 
-      ${isCurrentTurn 
-        ? 'bg-gradient-to-br from-purple-900/50 to-pink-900/50 border-2 border-purple-500' 
-        : 'bg-gray-800'
-      }
-      shadow-xl transition-all duration-300
-    `}>
-      <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
-        Player {chainSlug}
-        {isCurrentTurn && (
-          <span className="text-sm bg-purple-500 px-2 py-1 rounded-full">Current Turn</span>
-        )}
-      </h2>
-
-      {/* Resources */}
-      <div className="grid grid-cols-2 gap-4 mb-6">
-        <ResourceCard
-          label="Chemical X"
-          value={playerState.chemicalX[chainSlug]}
-          icon="⚗️"
-        />
-        <ResourceCard
-          label="Life"
-          value={playerState.life[chainSlug]}
-          icon="❤️"
-        />
-      </div>
-
-      {/* Characters */}
-      <div className="mb-6">
-        <h3 className="text-xl font-semibold mb-3">Characters</h3>
-        <div className="grid grid-cols-2 gap-3">
-          {Object.entries(playerState.characters[chainSlug] || {}).map(([id, char]) => (
-            <CharacterCard
-              key={id}
-              name={char.name}
-              turnsLeft={char.turnsLeft}
-              chainSlug={chainSlug}
-              contractAddress={contractAddress}
-              rpcUrl={contractAddress}
-              onAction={fetchGameState}
-              gameState={playerState}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* Powers */}
-      <div>
-        <h3 className="text-xl font-semibold mb-3">Powers</h3>
-        <div className="grid grid-cols-2 gap-3">
-          {Object.entries(playerState.powers[chainSlug] || {}).map(([id, power]) => (
-            <PowerCard
-              key={id}
-              name={power.name}
-              powerLeft={power.powerLeft}
-            />
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ResourceCard({ label, value, icon }: { label: string; value: number; icon: string }) {
-  return (
-    <div className="bg-gray-700/50 rounded-lg p-3 flex items-center gap-3">
-      <span className="text-2xl">{icon}</span>
-      <div>
-        <div className="text-sm text-gray-300">{label}</div>
-        <div className="font-bold">{value}</div>
       </div>
     </div>
   );
